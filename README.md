@@ -4,6 +4,8 @@
 
 A game written in Rust for the [WASM-4](https://wasm4.org) fantasy console.
 
+Play here: https://lomikron.github.io/minigolf/
+
 ## Building
 
 Build the cart by running:
