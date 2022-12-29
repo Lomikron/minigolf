@@ -1,4 +1,6 @@
-# game
+# Minigolf
+
+[![Build and Deploy](https://github.com/Lomikron/minigolf/actions/workflows/main.yml/badge.svg)](https://github.com/Lomikron/minigolf/actions/workflows/main.yml)
 
 A game written in Rust for the [WASM-4](https://wasm4.org) fantasy console.
 
