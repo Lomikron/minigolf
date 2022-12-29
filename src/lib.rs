@@ -11,7 +11,7 @@ pub const BALL_SIZE: u32 = 2;
 pub const WALL_WIDTH: u32 = 2;
 pub const DECCELERATION: f32 = 0.99;
 
-static PREVIOUS_MOUSE_BUTTON: Mutex<u8> = Mutex::new(0);
+static PREVIOUS_MOUSE_BUTTON: Mutex<bool> = Mutex::new(false);
 
 lazy_static::lazy_static! {
     static ref GAME: Mutex<game::Game> = Mutex::new(game::Game::new());
@@ -26,7 +26,10 @@ fn start() {
 
 #[no_mangle]
 fn update() {
-    let mouse = unsafe { *MOUSE_BUTTONS };
+    let mut mouse = unsafe { *MOUSE_BUTTONS };
+    let mouse_left = mouse & MOUSE_LEFT != 0;
+    let mouse_right = mouse & MOUSE_RIGHT != 0;
+
     let mouse_x = unsafe { *MOUSE_X };
     let mouse_y = unsafe { *MOUSE_Y };
 
@@ -41,10 +44,14 @@ fn update() {
             SCREEN_SIZE as i32 / 2,
             SCREEN_SIZE as i32 / 2,
         );
-    } else if *PREVIOUS_MOUSE_BUTTON.lock().unwrap() != mouse {
+    } else if *PREVIOUS_MOUSE_BUTTON.lock().unwrap() != mouse_left {
         GAME.lock().unwrap().velocity.x = -(mouse_x - SCREEN_SIZE as i16 / 2) as f32 / 80.0;
         GAME.lock().unwrap().velocity.y = (mouse_y - SCREEN_SIZE as i16 / 2) as f32 / 80.0;
+    } else if mouse_right {
+        GAME.lock().unwrap().scale = 1;
+    } else if !mouse_right {
+        GAME.lock().unwrap().scale = 2;
     }
 
-    *PREVIOUS_MOUSE_BUTTON.lock().unwrap() = mouse;
+    *PREVIOUS_MOUSE_BUTTON.lock().unwrap() = mouse_left;
 }
