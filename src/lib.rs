@@ -7,8 +7,10 @@ use std::sync::Mutex;
 
 use wasm4::*;
 
-pub const BALL_SIZE: u32 = 2;
+pub const BALL_SIZE: u32 = 1;
 pub const WALL_WIDTH: u32 = 2;
+pub const SCALE: u8 = 4;
+pub const OVERVIEW_SCALE: u8 = 2;
 pub const DECCELERATION: f32 = 0.99;
 
 static PREVIOUS_MOUSE_BUTTON: Mutex<bool> = Mutex::new(false);
@@ -22,36 +24,78 @@ fn start() {
     unsafe {
         *PALETTE = [0x00303b, 0xff7777, 0xffce96, 0xf1f2da];
     }
+
+    GAME.lock().unwrap().initialize_ball();
 }
 
 #[no_mangle]
 fn update() {
-    let mut mouse = unsafe { *MOUSE_BUTTONS };
-    let mouse_left = mouse & MOUSE_LEFT != 0;
-    let mouse_right = mouse & MOUSE_RIGHT != 0;
+    let mut game = GAME.lock().unwrap();
+    let mouse = unsafe { *MOUSE_BUTTONS };
 
-    let mouse_x = unsafe { *MOUSE_X };
-    let mouse_y = unsafe { *MOUSE_Y };
+    match game.state {
+        game::State::Menu => {
+            text("Press Space or X\n     to Start", 10, 80);
+            let gamepad = unsafe { *GAMEPAD1 };
+            if gamepad & BUTTON_1 != 0{
+                game.state = game::State::Playing;
+                game.initialize_ball();
+            }
 
-    GAME.lock().unwrap().update();
-    GAME.lock().unwrap().draw();
+        }
+        game::State::Playing => {
+            
+            let mouse_left = mouse & MOUSE_LEFT != 0;
+            let mouse_right = mouse & MOUSE_RIGHT != 0;
 
-    if mouse & MOUSE_LEFT != 0 {
-        unsafe { *DRAW_COLORS = 4 }
-        line(
-            mouse_x as i32,
-            mouse_y as i32,
-            SCREEN_SIZE as i32 / 2,
-            SCREEN_SIZE as i32 / 2,
-        );
-    } else if *PREVIOUS_MOUSE_BUTTON.lock().unwrap() != mouse_left {
-        GAME.lock().unwrap().velocity.x = -(mouse_x - SCREEN_SIZE as i16 / 2) as f32 / 80.0;
-        GAME.lock().unwrap().velocity.y = (mouse_y - SCREEN_SIZE as i16 / 2) as f32 / 80.0;
-    } else if mouse_right {
-        GAME.lock().unwrap().scale = 1;
-    } else if !mouse_right {
-        GAME.lock().unwrap().scale = 2;
+            let mouse_x = unsafe { *MOUSE_X };
+            let mouse_y = unsafe { *MOUSE_Y };
+
+            game.update();
+            game.draw();
+
+            if mouse & MOUSE_LEFT != 0 {
+                if game.is_stationary() {
+                    unsafe { *DRAW_COLORS = 4 }
+                } else  {
+                    unsafe { *DRAW_COLORS = 2 }
+                }
+                line(
+                    mouse_x as i32,
+                    mouse_y as i32,
+                    SCREEN_SIZE as i32 / 2,
+                    SCREEN_SIZE as i32 / 2,
+                );
+            } else if *PREVIOUS_MOUSE_BUTTON.lock().unwrap() != mouse_left {
+                if game.is_stationary() {
+                    game.velocity.x = -(mouse_x - SCREEN_SIZE as i16 / 2) as f32 / 80.0;
+                    game.velocity.y = (mouse_y - SCREEN_SIZE as i16 / 2) as f32 / 80.0;
+                    game.score += 1;
+                }
+            } else if mouse_right {
+                game.scale = OVERVIEW_SCALE;
+            } else if !mouse_right {
+                game.scale = SCALE;
+            }
+        
+            *PREVIOUS_MOUSE_BUTTON.lock().unwrap() = mouse_left;
+        }
+        game::State::GameOver => {
+            unsafe { *DRAW_COLORS = 3 }
+            text("Congratulations!", 10, 50);
+            text(format!("Your score is {}", game.score), 10, 70);
+            unsafe { *DRAW_COLORS = 2 }
+            text("Press Space or X\n   to Restart", 10, 100);
+            let gamepad = unsafe { *GAMEPAD1 };
+            if gamepad & BUTTON_1 != 0{
+                game.state = game::State::Playing;
+                game.level = 0;
+                game.score = 0;
+                game.velocity.x = 0.0;
+                game.velocity.y = 0.0;
+                game.initialize_ball();
+            }
+        }
     }
 
-    *PREVIOUS_MOUSE_BUTTON.lock().unwrap() = mouse_left;
 }
