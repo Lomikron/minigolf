@@ -89,8 +89,8 @@ pub struct Game {
 impl Game {
     pub fn new() -> Self {
         Self {
-            state: State::Playing,
-            level: 3,
+            state: State::Menu,
+            level: 0,
             levels: levels::LEVELS
                 .iter()
                 .map(|level| Level {
