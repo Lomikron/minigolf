@@ -2,7 +2,7 @@ use std::{str::FromStr};
 
 use libm::sqrtf;
 
-use super::{levels, DECCELERATION, BALL_SIZE};
+use super::{levels, DECCELERATION, BALL_SIZE, MAX_SPEED};
 use crate::{wasm4::*, SCALE};
 
 pub enum State {
@@ -60,8 +60,18 @@ impl Tile {
 
     fn collision(&self, x: f32, y: f32, vel_x: f32, vel_y: f32) -> (f32, f32) {
         match self {
-            Tile::VerticalWall => (-vel_x, vel_y),
-            Tile::HorizontalWall => (vel_x, -vel_y),
+            Tile::VerticalWall => {
+                let speed = sqrtf(vel_x.powi(2) + vel_y.powi(2));
+                tone((speed/MAX_SPEED * 100.0 + 450.0) as u32, 1, (speed/MAX_SPEED * 50.0 + 50.0 ) as u32, TONE_TRIANGLE);
+                (-vel_x, vel_y)
+            }
+                ,
+            Tile::HorizontalWall =>  {
+                let speed = sqrtf(vel_x.powi(2) + vel_y.powi(2));
+                tone((speed/MAX_SPEED * 100.0 + 450.0) as u32, 1, (speed/MAX_SPEED * 50.0 + 50.0 ) as u32, TONE_TRIANGLE);
+                (vel_x, -vel_y)
+            }
+                ,
             _ => (vel_x, vel_y),
         }
     }
@@ -164,6 +174,7 @@ impl Game {
             let tile_index = self.position.x as usize + (self.levels[self.level as usize].tiles.len() as usize / self.levels[self.level as usize].width as usize - self.position.y as usize) * self.levels[self.level as usize].width as usize;
             if tile_index < self.levels[self.level as usize].tiles.len() {        
                 if self.levels[self.level as usize].tiles[tile_index] == Tile::Goal {
+                    tone(600, 1, 100, TONE_PULSE1);
                     self.next_level();
                     return; 
                 }
