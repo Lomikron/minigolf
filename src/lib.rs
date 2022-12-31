@@ -3,7 +3,7 @@ mod alloc;
 mod game;
 mod levels;
 mod wasm4;
-use std::{sync::Mutex };
+use std::sync::Mutex;
 
 use libm::sqrtf;
 use wasm4::*;
@@ -48,7 +48,6 @@ fn update() {
             *PREVIOUS_GAMEPAD_X.lock().unwrap() = gamepad & BUTTON_1 != 0;
         }
         game::State::Playing => {
-            
             let mouse_left = mouse & MOUSE_LEFT != 0;
             let mouse_right = mouse & MOUSE_RIGHT != 0;
 
@@ -61,7 +60,7 @@ fn update() {
             if mouse & MOUSE_LEFT != 0 {
                 if game.is_stationary() {
                     unsafe { *DRAW_COLORS = 4 }
-                } else  {
+                } else {
                     unsafe { *DRAW_COLORS = 2 }
                 }
                 line(
@@ -89,7 +88,7 @@ fn update() {
             } else if !mouse_right {
                 game.scale = SCALE;
             }
-        
+
             *PREVIOUS_MOUSE_BUTTON.lock().unwrap() = mouse_left;
         }
         game::State::GameOver => {
@@ -99,7 +98,7 @@ fn update() {
             unsafe { *DRAW_COLORS = 2 }
             text("Press Space or X\n   to Restart", 10, 100);
             let gamepad = unsafe { *GAMEPAD1 };
-            if gamepad & BUTTON_1 != 0{
+            if gamepad & BUTTON_1 != 0 {
                 game.state = game::State::Playing;
                 game.level = 0;
                 game.score = 0;
@@ -109,5 +108,4 @@ fn update() {
             }
         }
     }
-
 }
