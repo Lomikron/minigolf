@@ -3,8 +3,9 @@ mod alloc;
 mod game;
 mod levels;
 mod wasm4;
-use std::sync::Mutex;
+use std::{sync::Mutex };
 
+use libm::sqrtf;
 use wasm4::*;
 
 pub const BALL_SIZE: u32 = 1;
@@ -12,6 +13,8 @@ pub const WALL_WIDTH: u32 = 2;
 pub const SCALE: u8 = 4;
 pub const OVERVIEW_SCALE: u8 = 2;
 pub const DECCELERATION: f32 = 0.99;
+pub const PUSH_FORCE: f32 = 0.013;
+pub const MAX_SPEED: f32 = 2.5;
 
 static PREVIOUS_MOUSE_BUTTON: Mutex<bool> = Mutex::new(false);
 
@@ -68,8 +71,16 @@ fn update() {
                 );
             } else if *PREVIOUS_MOUSE_BUTTON.lock().unwrap() != mouse_left {
                 if game.is_stationary() {
-                    game.velocity.x = -(mouse_x - SCREEN_SIZE as i16 / 2) as f32 / 80.0;
-                    game.velocity.y = (mouse_y - SCREEN_SIZE as i16 / 2) as f32 / 80.0;
+                    let push_x = -(mouse_x - SCREEN_SIZE as i16 / 2) as f32 * PUSH_FORCE;
+                    let push_y = (mouse_y - SCREEN_SIZE as i16 / 2) as f32 * PUSH_FORCE;
+                    let speed = sqrtf(push_x * push_x + push_y * push_y);
+                    if speed < MAX_SPEED {
+                        game.velocity.x = push_x;
+                        game.velocity.y = push_y;
+                    } else {
+                        game.velocity.x = push_x * MAX_SPEED / speed;
+                        game.velocity.y = push_y * MAX_SPEED / speed;
+                    }
                     game.score += 1;
                 }
             } else if mouse_right {
