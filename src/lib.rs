@@ -17,7 +17,7 @@ pub const PUSH_FORCE: f32 = 0.013;
 pub const MAX_SPEED: f32 = 2.5;
 
 static PREVIOUS_MOUSE_BUTTON: Mutex<bool> = Mutex::new(false);
-static PREVIOUS_GAMEPAD_X: Mutex<bool> = Mutex::new(false);
+static PREVIOUS_GAMEPAD_X: Mutex<u8> = Mutex::new(0);
 
 lazy_static::lazy_static! {
     static ref GAME: Mutex<game::Game> = Mutex::new(game::Game::new());
@@ -36,16 +36,16 @@ fn start() {
 fn update() {
     let mut game = GAME.lock().unwrap();
     let mouse = unsafe { *MOUSE_BUTTONS };
+    let gamepad = unsafe { *GAMEPAD1 };
 
     match game.state {
         game::State::Menu => {
             text("Press Space or X\n     to Start", 10, 80);
-            let gamepad = unsafe { *GAMEPAD1 };
-            if gamepad & BUTTON_1 == 0 && *PREVIOUS_GAMEPAD_X.lock().unwrap() {
+
+            if gamepad & BUTTON_1 == 0 && *PREVIOUS_GAMEPAD_X.lock().unwrap() & BUTTON_1 != 0 {
                 game.state = game::State::Playing;
                 game.initialize_ball();
             }
-            *PREVIOUS_GAMEPAD_X.lock().unwrap() = gamepad & BUTTON_1 != 0;
         }
         game::State::Playing => {
             let mouse_left = mouse & MOUSE_LEFT != 0;
@@ -83,13 +83,13 @@ fn update() {
                     }
                     game.score += 1;
                 }
-            } else if mouse_right {
+            } else if mouse_right || gamepad & BUTTON_2 != 0{
                 game.scale = OVERVIEW_SCALE;
-            } else if !mouse_right {
+            } else if !mouse_right && gamepad & BUTTON_2 == 0 {
                 game.scale = SCALE;
             }
-
             *PREVIOUS_MOUSE_BUTTON.lock().unwrap() = mouse_left;
+
         }
         game::State::GameOver => {
             unsafe { *DRAW_COLORS = 3 }
@@ -107,5 +107,7 @@ fn update() {
                 game.initialize_ball();
             }
         }
+
     }
+    *PREVIOUS_GAMEPAD_X.lock().unwrap() = gamepad;
 }

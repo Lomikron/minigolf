@@ -3,7 +3,7 @@ use std::str::FromStr;
 use libm::sqrtf;
 
 use super::{levels, BALL_SIZE, DECCELERATION, MAX_SPEED};
-use crate::{wasm4::*, SCALE};
+use crate::{wasm4::*};
 
 pub enum State {
     Menu,
@@ -58,7 +58,7 @@ impl Tile {
         }
     }
 
-    fn collision(&self, x: f32, y: f32, vel_x: f32, vel_y: f32) -> (f32, f32) {
+    fn collision(&self, _x: f32, _y: f32, vel_x: f32, vel_y: f32) -> (f32, f32) {
         match self {
             Tile::VerticalWall => {
                 let speed = sqrtf(vel_x.powi(2) + vel_y.powi(2));
