@@ -1,4 +1,6 @@
-use std::str::FromStr;
+use std::{str::FromStr};
+
+use libm::sqrtf;
 
 use super::{levels, DECCELERATION, BALL_SIZE};
 use crate::{wasm4::*, SCALE};
@@ -65,7 +67,7 @@ impl Tile {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Level {
     pub tiles: Vec<Tile>,
     pub width: u16,
@@ -140,31 +142,37 @@ impl Game {
     }
 
     pub fn update(&mut self) {
-        self.position.x += self.velocity.x;
-        self.position.y += self.velocity.y;
-
-        let level = &self.levels[self.level as usize];
-        let tile_index = self.position.x as usize + (level.tiles.len() as usize / level.width as usize - self.position.y as usize) * level.width as usize;
-        if tile_index < level.tiles.len() {
-            let tile = level.tiles[tile_index];
-        
-            if tile == Tile::Goal {
-                self.next_level();
-            }
-    
-            (self.velocity.x, self.velocity.y) = tile.collision(self.position.x, self.position.y, self.velocity.x, self.velocity.y);
-        }
-
 
         self.velocity.x *= DECCELERATION;
         self.velocity.y *= DECCELERATION;
 
-        if self.velocity.x.abs() < 0.01 {
-            self.velocity.x = 0.0;
+        let speed = sqrtf(self.velocity.x.powi(2) + self.velocity.y.powi(2));
+        let mut steps = (speed / 0.1 ) as u32;
+        if steps == 0 {
+            steps = 1;
         }
-        if self.velocity.y.abs() < 0.01 {
+
+        if speed < 0.01 {
+            self.velocity.x = 0.0;
             self.velocity.y = 0.0;
         }
+
+        for _ in 0..steps {
+            self.position.x += self.velocity.x / steps as f32;
+            self.position.y += self.velocity.y / steps as f32;
+
+            let tile_index = self.position.x as usize + (self.levels[self.level as usize].tiles.len() as usize / self.levels[self.level as usize].width as usize - self.position.y as usize) * self.levels[self.level as usize].width as usize;
+            if tile_index < self.levels[self.level as usize].tiles.len() {        
+                if self.levels[self.level as usize].tiles[tile_index] == Tile::Goal {
+                    self.next_level();
+                    return; 
+                }
+                let tile = &self.levels[self.level as usize].tiles[tile_index];
+        
+                (self.velocity.x, self.velocity.y) = tile.collision(self.position.x, self.position.y, self.velocity.x, self.velocity.y);
+            }
+        }
+
     }
 
     pub fn draw(&mut self) {
