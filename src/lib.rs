@@ -17,6 +17,7 @@ pub const PUSH_FORCE: f32 = 0.013;
 pub const MAX_SPEED: f32 = 2.5;
 
 static PREVIOUS_MOUSE_BUTTON: Mutex<bool> = Mutex::new(false);
+static PREVIOUS_GAMEPAD_X: Mutex<bool> = Mutex::new(false);
 
 lazy_static::lazy_static! {
     static ref GAME: Mutex<game::Game> = Mutex::new(game::Game::new());
@@ -40,11 +41,11 @@ fn update() {
         game::State::Menu => {
             text("Press Space or X\n     to Start", 10, 80);
             let gamepad = unsafe { *GAMEPAD1 };
-            if gamepad & BUTTON_1 != 0{
+            if gamepad & BUTTON_1 == 0 && *PREVIOUS_GAMEPAD_X.lock().unwrap() {
                 game.state = game::State::Playing;
                 game.initialize_ball();
             }
-
+            *PREVIOUS_GAMEPAD_X.lock().unwrap() = gamepad & BUTTON_1 != 0;
         }
         game::State::Playing => {
             
