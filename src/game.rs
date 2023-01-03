@@ -209,7 +209,7 @@ impl Game {
         self.velocity.y *= DECCELERATION;
 
         let speed = sqrtf(self.velocity.x.powi(2) + self.velocity.y.powi(2));
-        let mut steps = (speed / 0.1) as u32;
+        let mut steps = (speed / 0.02) as u32;
         if steps == 0 {
             steps = 1;
         }

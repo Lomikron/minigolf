@@ -98,7 +98,7 @@ fn update() {
             unsafe { *DRAW_COLORS = 2 }
             text("Press Space or X\n   to Restart", 10, 100);
             let gamepad = unsafe { *GAMEPAD1 };
-            if gamepad & BUTTON_1 != 0 {
+            if gamepad & BUTTON_1 == 0 && *PREVIOUS_GAMEPAD_X.lock().unwrap() & BUTTON_1 != 0 {
                 game.state = game::State::Playing;
                 game.level = 0;
                 game.score = 0;
