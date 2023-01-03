@@ -93,6 +93,15 @@ impl Tile {
                 (vel_x, -vel_y)
             }
             Tile::TopLeftCorner | Tile::TopRightCorner => {
+                let speed = sqrtf(vel_x.powi(2) + vel_y.powi(2));
+                if speed > 0.05 {
+                    tone(
+                        (speed / MAX_SPEED * 100.0 + 450.0) as u32,
+                        1,
+                        (speed / MAX_SPEED * 50.0 + 50.0) as u32,
+                        TONE_TRIANGLE,
+                    );
+                }
                 let mod_y = fmodf(y, 1.0);
                 if mod_y < 0.85 {
                     return (-vel_x, vel_y);
@@ -100,6 +109,15 @@ impl Tile {
                 (vel_x, -vel_y)
             }
             Tile::BottomLeftCorner | Tile::BottomRightCorner => {
+                let speed = sqrtf(vel_x.powi(2) + vel_y.powi(2));
+                if speed > 0.05 {
+                    tone(
+                        (speed / MAX_SPEED * 100.0 + 450.0) as u32,
+                        1,
+                        (speed / MAX_SPEED * 50.0 + 50.0) as u32,
+                        TONE_TRIANGLE,
+                    );
+                }
                 let mod_y = fmodf(y, 1.0);
                 if mod_y > 0.15 {
                     return (-vel_x, vel_y);
