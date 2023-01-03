@@ -1,9 +1,9 @@
 use std::str::FromStr;
 
-use libm::sqrtf;
+use libm::{sqrtf, fmodf};
 
 use super::{levels, BALL_SIZE, DECCELERATION, MAX_SPEED};
-use crate::{wasm4::*};
+use crate::{wasm4::*, SCALE};
 
 pub enum State {
     Menu,
@@ -15,6 +15,10 @@ pub enum State {
 pub enum Tile {
     VerticalWall,
     HorizontalWall,
+    TopLeftCorner,
+    TopRightCorner,
+    BottomLeftCorner,
+    BottomRightCorner,
     Empty,
     Player,
     Goal,
@@ -28,6 +32,10 @@ impl FromStr for Tile {
         match char {
             '|' => Ok(Tile::VerticalWall),
             '-' => Ok(Tile::HorizontalWall),
+            'l' => Ok(Tile::TopLeftCorner),
+            'r' => Ok(Tile::TopRightCorner),
+            'L' => Ok(Tile::BottomLeftCorner),
+            'R' => Ok(Tile::BottomRightCorner),
             ' ' => Ok(Tile::Empty),
             'p' => Ok(Tile::Player),
             'x' => Ok(Tile::Goal),
@@ -42,12 +50,12 @@ impl FromStr for Tile {
 impl Tile {
     fn draw(&self, x: i32, y: i32, scale: u32) {
         match self {
-            Tile::VerticalWall | Tile::HorizontalWall => {
+            Tile::VerticalWall | Tile::HorizontalWall | Tile::BottomLeftCorner | Tile::BottomRightCorner | Tile::TopLeftCorner | Tile::TopRightCorner => {
                 unsafe {
                     *DRAW_COLORS = 0x22;
                 }
                 rect(x, y, scale, scale);
-            }
+            },
             Tile::Goal => {
                 unsafe {
                     *DRAW_COLORS = 0x33;
@@ -58,7 +66,7 @@ impl Tile {
         }
     }
 
-    fn collision(&self, _x: f32, _y: f32, vel_x: f32, vel_y: f32) -> (f32, f32) {
+    fn collision(&self, _x: f32, y: f32, vel_x: f32, vel_y: f32) -> (f32, f32) {
         match self {
             Tile::VerticalWall => {
                 let speed = sqrtf(vel_x.powi(2) + vel_y.powi(2));
@@ -81,6 +89,20 @@ impl Tile {
                         (speed / MAX_SPEED * 50.0 + 50.0) as u32,
                         TONE_TRIANGLE,
                     );
+                }
+                (vel_x, -vel_y)
+            }
+            Tile::TopLeftCorner | Tile::TopRightCorner => {
+                let mod_y = fmodf(y, 1.0);
+                if mod_y < 0.85 {
+                    return (-vel_x, vel_y);
+                }
+                (vel_x, -vel_y)
+            }
+            Tile::BottomLeftCorner | Tile::BottomRightCorner => {
+                let mod_y = fmodf(y, 1.0);
+                if mod_y > 0.15 {
+                    return (-vel_x, vel_y);
                 }
                 (vel_x, -vel_y)
             }
@@ -128,7 +150,7 @@ impl Game {
                 })
                 .collect(),
             score: 0,
-            position: Position { x: 5.0, y: 2.0 },
+            position: Position { x: 0.0, y: 0.0 },
             scale: 4,
             velocity: Position { x: 0.0, y: 0.0 },
         }
@@ -145,8 +167,8 @@ impl Game {
         let player_x = (player_index % level.width as usize) as f32;
         let player_y = level.tiles.len() as i32 / level.width as i32
             - (player_index / level.width as usize) as i32;
-        self.position.x = player_x + BALL_SIZE as f32 / 2.0;
-        self.position.y = player_y as f32 - BALL_SIZE as f32 / 2.0;
+        self.position.x = player_x + 0.5;
+        self.position.y = player_y as f32;
     }
 
     pub fn is_stationary(&self) -> bool {
@@ -217,10 +239,7 @@ impl Game {
             let x_coord =
                 SCREEN_SIZE as i32 / 2 + x * scale as i32 - (self.position.x * scale as f32) as i32;
             let y_coord = SCREEN_SIZE as i32 / 2 - y * scale as i32
-                + (self.position.y * scale as f32) as i32
-                - scale as i32
-                + 1;
-
+                + (self.position.y * scale as f32) as i32 - BALL_SIZE as i32 * SCALE as i32 / 2 - 1;
             tile.draw(x_coord, y_coord, scale);
 
             unsafe {
